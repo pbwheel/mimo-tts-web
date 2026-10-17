@@ -126,5 +126,31 @@ const Utils = {
      */
     uid() {
         return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    },
+
+    /**
+     * 声纹指纹 — 由音色 id 确定性生成的波形条高度（百分比数组）。
+     * 同一音色任何设备上渲染一致，无需额外资源。
+     */
+    voiceFingerprint(id, bars = 20) {
+        // FNV-1a 哈希 → 种子
+        let h = 2166136261;
+        for (const ch of String(id)) {
+            h ^= ch.codePointAt(0);
+            h = Math.imul(h, 16777619);
+        }
+        let seed = h >>> 0;
+        const rnd = () => {
+            seed = Math.imul(seed ^ (seed >>> 15), 2246822519);
+            seed = Math.imul(seed ^ (seed >>> 13), 3266489917);
+            return ((seed ^= seed >>> 16) >>> 0) / 4294967296;
+        };
+        const out = [];
+        for (let i = 0; i < bars; i++) {
+            // 两端低、中间高的包络，接近真实语谱形态
+            const env = 0.3 + 0.7 * Math.sin(Math.PI * (i + 0.5) / bars);
+            out.push(Math.round(18 + rnd() * 82 * env));
+        }
+        return out;
     }
 };

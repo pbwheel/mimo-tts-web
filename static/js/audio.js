@@ -212,7 +212,9 @@ class WaveformRenderer {
         this.ctx = canvas.getContext('2d');
         this.peaks = null;
         this.progress = 0;
+        this.revealFrac = 1;
         this._resizeObserver = null;
+        this._revealRaf = null;
 
         // 响应式
         this._resizeObserver = new ResizeObserver(() => this.draw());
@@ -221,6 +223,7 @@ class WaveformRenderer {
 
     /** 从 AudioBuffer 计算 peaks 并绘制 */
     setAudioBuffer(audioBuffer) {
+        this.revealFrac = 1; // 默认完整绘制；需要入场动效时随后调用 reveal()
         const raw = audioBuffer.getChannelData(0);
         const numBars = Math.max(100, this.canvas.parentElement.clientWidth / 2);
         const step = Math.floor(raw.length / numBars);
@@ -264,6 +267,29 @@ class WaveformRenderer {
         this.draw();
     }
 
+    /**
+     * 波形从左向右"生长"入场 — 合成完成的揭晓时刻。
+     * 尊重 prefers-reduced-motion：直接完整绘制。
+     */
+    reveal(duration = 450) {
+        if (this._revealRaf) cancelAnimationFrame(this._revealRaf);
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            this.revealFrac = 1;
+            this.draw();
+            return;
+        }
+        const t0 = performance.now();
+        this.revealFrac = 0;
+        const step = (now) => {
+            const p = Math.min(1, (now - t0) / duration);
+            this.revealFrac = 1 - Math.pow(1 - p, 3); // easeOutCubic
+            this.draw();
+            if (p < 1) this._revealRaf = requestAnimationFrame(step);
+            else this._revealRaf = null;
+        };
+        this._revealRaf = requestAnimationFrame(step);
+    }
+
     draw() {
         const { canvas, ctx, peaks } = this;
         if (!peaks || !peaks.length) return;
@@ -291,9 +317,10 @@ class WaveformRenderer {
         const defaultColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)';
 
         for (let i = 0; i < peaks.length; i++) {
+            const frac = i / peaks.length;
+            if (frac > this.revealFrac) continue; // 生长入场：未揭晓的部分不绘制
             const barH = Math.max(2, peaks[i] * (h * 0.85));
             const x = i * barW;
-            const frac = i / peaks.length;
 
             if (frac <= this.progress) {
                 ctx.fillStyle = progressColor;

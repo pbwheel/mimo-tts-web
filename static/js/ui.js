@@ -17,7 +17,7 @@ const UI = {
         }
     },
 
-    /** 设置按钮 loading 状态 */
+    /** 设置按钮 loading 状态（含真实耗时计时） */
     setBtnLoading(btn, loading) {
         if (loading) {
             btn.disabled = true;
@@ -29,8 +29,14 @@ const UI = {
             const spinner = document.createElement('span');
             spinner.className = 'spinner';
             btn.appendChild(spinner);
-            if (txt) txt.textContent = '合成中…';
+            const t0 = performance.now();
+            if (txt) txt.textContent = '合成中 0.0s';
+            btn._loadingTimer = setInterval(() => {
+                if (!btn.isConnected) { clearInterval(btn._loadingTimer); return; }
+                if (txt) txt.textContent = `合成中 ${((performance.now() - t0) / 1000).toFixed(1)}s`;
+            }, 100);
         } else {
+            clearInterval(btn._loadingTimer);
             btn.disabled = false;
             btn.classList.remove('loading');
             const spinner = btn.querySelector('.spinner');
@@ -42,28 +48,42 @@ const UI = {
         }
     },
 
-    /** 渲染音色网格 */
+    /** 渲染音色网格 — 声纹指纹卡片 */
     renderVoiceGrid(voices, selectedId, onSelect, onPreview) {
         const grid = document.getElementById('voice-grid');
         grid.innerHTML = '';
-        const genderIcon = { male: '♂', female: '♀', neutral: '◉' };
+        const genderText = { male: '男声', female: '女声', neutral: '通用' };
         voices.forEach(v => {
             const card = document.createElement('div');
             card.className = `voice-card${v.id === selectedId ? ' selected' : ''}`;
             card.dataset.voiceId = v.id;
+            card.setAttribute('role', 'button');
+            card.setAttribute('tabindex', '0');
+            card.setAttribute('aria-pressed', v.id === selectedId ? 'true' : 'false');
+            const fp = Utils.voiceFingerprint(v.id);
+            const bars = fp.map((h, i) =>
+                `<span style="height:${h}%;animation-delay:${(-i * 0.07).toFixed(2)}s"></span>`
+            ).join('');
             card.innerHTML = `
                 <button class="voice-preview-btn" data-voice="${v.id}" title="试听">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 </button>
+                <div class="voice-fp" aria-hidden="true">${bars}</div>
                 <div class="voice-card-name">${v.name}</div>
                 <div class="voice-card-meta">
-                    <span>${genderIcon[v.gender] || '◉'}</span>
+                    <span>${genderText[v.gender] || '通用'}</span>
                     <span class="voice-card-badge">${v.language}</span>
                 </div>
             `;
             card.addEventListener('click', (e) => {
                 if (e.target.closest('.voice-preview-btn')) return;
                 onSelect(v.id);
+            });
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelect(v.id);
+                }
             });
             card.querySelector('.voice-preview-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -76,7 +96,9 @@ const UI = {
     /** 更新音色选中状态 */
     updateVoiceSelection(selectedId) {
         document.querySelectorAll('.voice-card').forEach(c => {
-            c.classList.toggle('selected', c.dataset.voiceId === selectedId);
+            const sel = c.dataset.voiceId === selectedId;
+            c.classList.toggle('selected', sel);
+            c.setAttribute('aria-pressed', sel ? 'true' : 'false');
         });
     },
 

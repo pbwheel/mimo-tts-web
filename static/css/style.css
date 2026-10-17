@@ -42,7 +42,59 @@
 .sub-panel { display: none; }
 .sub-panel.active { display: block; animation: mx-fade-item var(--mx-d2) var(--mx-ease) }
 
-/* ====== 音色网格 ====== */
+/* ====== 音色网格 — 声纹指纹卡片 ====== */
+.voice-fp {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    height: 30px;
+    margin-bottom: 8px;
+}
+
+.voice-fp span {
+    width: 3px;
+    border-radius: 2px;
+    background: var(--mx-t3);
+    transition: background var(--mx-d2) var(--mx-ease);
+}
+
+.voice-card.selected .voice-fp span { background: var(--mx-primary); }
+
+/* 试听播放中：卡片即播放指示器，指纹随声音跳动 */
+.voice-card.previewing .voice-fp span {
+    background: var(--mx-primary);
+    animation: voice-bar 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes voice-bar {
+    from { transform: scaleY(0.35); }
+    to { transform: scaleY(1); }
+}
+
+/* 选中对勾徽标 */
+.voice-card.selected::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--mx-primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E") center / 10px no-repeat;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    animation: ctx-pop var(--mx-d2) var(--mx-spring);
+}
+
+@keyframes ctx-pop {
+    from { transform: scale(0.4); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.voice-card:focus-visible {
+    outline: 2px solid var(--mx-primary);
+    outline-offset: 2px;
+}
 .voice-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -237,6 +289,58 @@
     padding-top: 12px;
     border-top: 1px solid var(--mx-divider);
 }
+
+/* CTA 行左侧：上下文胶囊 + 流式开关 */
+.action-meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    flex: 1;
+}
+
+/* 上下文胶囊 — 回显"即将用什么合成"，点按跳回设置卡片 */
+.ctx-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 280px;
+    min-width: 0;
+    padding: 5px 12px;
+    background: var(--mx-s3);
+    border: 1px solid var(--mx-border);
+    border-radius: var(--mx-r-pill);
+    font-size: 12px;
+    color: var(--mx-t2);
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color var(--mx-d1) var(--mx-ease), color var(--mx-d1) var(--mx-ease);
+}
+
+.ctx-chip:hover { border-color: var(--mx-primary); color: var(--mx-text); }
+.ctx-chip:focus-visible { outline: 2px solid var(--mx-primary); outline-offset: 2px; }
+
+.ctx-chip-icon { color: var(--mx-primary); flex-shrink: 0; }
+
+.ctx-chip-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 待补状态：虚线边框示意尚未就绪 */
+.ctx-chip.missing { color: var(--mx-t3); border-style: dashed; }
+.ctx-chip.missing .ctx-chip-icon { color: var(--mx-amber); }
+
+/* 胶囊跳转目标的滚动定位与高亮 */
+.panel .mx-card { scroll-margin-top: 16px; }
+
+@keyframes card-flash {
+    0%, 100% { outline: 2px solid transparent; outline-offset: 3px; }
+    30% { outline: 2px solid var(--mx-primary); outline-offset: 3px; }
+}
+
+.card-flash { animation: card-flash 1s var(--mx-ease) 1; }
 
 /* ====== 输出区 ====== */
 .output-card {
@@ -527,6 +631,9 @@
         gap: 8px;
     }
 
+    .action-meta { width: 100%; }
+    .ctx-chip { flex: 1; max-width: none; }
+
     .action-row .mx-btn-lg {
         width: 100%;
     }
@@ -553,4 +660,24 @@
     }
 
     .voice-card { padding: 8px; }
+}
+
+/* ====== 动效降级 — 尊重系统"减少动态效果"设置 ====== */
+@media (prefers-reduced-motion: reduce) {
+    .panel.active,
+    .sub-panel.active,
+    .output-card,
+    .director-fields,
+    .tags-preview,
+    .file-info,
+    .batch-progress,
+    .param-summary,
+    .voice-card.selected::after,
+    .voice-card.previewing .voice-fp span,
+    .card-flash {
+        animation: none !important;
+    }
+
+    .voice-card,
+    .ctx-chip { transition: none; }
 }

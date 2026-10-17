@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initVoiceClonePanel();
     initSettingsPanel();
     initHistoryPanel();
+    initContextChips();
     refreshHistoryUI();
 });
 
@@ -202,6 +203,82 @@ function switchTab(tab) {
 
     // 更新页面标题
     UI.updatePageTitle(tab);
+}
+
+/* ==================== 合成上下文胶囊 ==================== */
+
+/**
+ * CTA 行的上下文胶囊：实时回显"即将用什么合成"，
+ * 点击跳回对应的设置卡片，免去来回滚动确认。
+ */
+function initContextChips() {
+    ['preset', 'voicedesign', 'voiceclone'].forEach(panel => {
+        const section = document.getElementById(`panel-${panel}`);
+        const chip = document.getElementById(`${panel}-context-chip`);
+        if (!section || !chip) return;
+        const refresh = () => updateContextChip(panel);
+        // 面板内任何输入/切换/点选都可能改变合成上下文，重算代价极低
+        section.addEventListener('input', refresh);
+        section.addEventListener('change', refresh);
+        section.addEventListener('click', refresh);
+        chip.addEventListener('click', () => focusContextTarget(panel));
+        refresh();
+    });
+}
+
+function updateContextChip(panel) {
+    const chip = document.getElementById(`${panel}-context-chip`);
+    if (!chip) return;
+    const textEl = chip.querySelector('.ctx-chip-text');
+    let label = '', missing = false;
+
+    if (panel === 'preset') {
+        const v = State.voices.find(x => x.id === State.selectedVoice);
+        const parts = [v ? `${v.name} · ${v.language}` : State.selectedVoice];
+        const audioTab = document.getElementById('preset-audio-tags').classList.contains('active');
+        let style = '';
+        if (audioTab) {
+            if (State.selectedStyleTags.size) style = `${State.selectedStyleTags.size} 个标签`;
+        } else if (document.getElementById('preset-director-toggle').checked) {
+            style = '导演模式';
+        } else {
+            const sp = document.getElementById('preset-style-prompt').value.trim();
+            if (sp) style = Utils.truncate(sp, 10);
+        }
+        if (document.getElementById('preset-singing-toggle').checked) style = style ? `${style} · 唱歌` : '唱歌';
+        if (style) parts.push(style);
+        label = parts.join(' · ');
+    } else if (panel === 'voicedesign') {
+        const desc = document.getElementById('voicedesign-description').value.trim();
+        missing = !desc;
+        label = desc ? Utils.truncate(desc, 16) : '未填写音色描述';
+    } else if (panel === 'voiceclone') {
+        missing = !State.voiceclone.audioBase64;
+        const name = document.getElementById('voiceclone-file-name').textContent;
+        label = missing ? '未上传样本' : Utils.truncate(name, 20);
+    }
+
+    textEl.textContent = label;
+    chip.classList.toggle('missing', missing);
+}
+
+/** 点击胶囊 → 滚回对应设置卡片并高亮一下 */
+function focusContextTarget(panel) {
+    let target;
+    if (panel === 'preset') {
+        target = document.getElementById('voice-grid')?.closest('.mx-card');
+    } else if (panel === 'voicedesign') {
+        target = document.getElementById('voicedesign-description')?.closest('.mx-card');
+    } else {
+        const info = document.getElementById('voiceclone-file-info');
+        target = (info && !info.classList.contains('hidden') ? info : document.getElementById('voiceclone-dropzone'))?.closest('.mx-card');
+    }
+    if (!target) return;
+    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    target.classList.remove('card-flash');
+    void target.offsetWidth; // 重新触发动画
+    target.classList.add('card-flash');
 }
 
 /* ==================== 预置音色面板 ==================== */
@@ -558,6 +635,7 @@ function initSettingsPanel() {
         localStorage.setItem('mimo_default_voice', voiceSelect.value);
         State.selectedVoice = voiceSelect.value;
         UI.updateVoiceSelection(voiceSelect.value);
+        updateContextChip('preset'); // 设置面板在委托监听范围之外，手动刷新
         UI.toast('默认音色已更新', 'success');
     });
 
@@ -620,6 +698,16 @@ function updatePlayBtn(panel, isPlaying) {
 
 /* ==================== 通用：显示合成结果 ==================== */
 
+/**
+ * 揭晓时刻：输出卡滚动到位 + 波形从左向右生长。
+ */
+function revealOutput(panel, panelState) {
+    const output = document.getElementById(`${panel}-output`);
+    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (output) output.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' });
+    if (panelState.waveform) panelState.waveform.reveal();
+}
+
 async function showSynthResult(panel, blob, duration) {
     const panelState = State[panel];
     panelState.lastBlob = blob;
@@ -627,6 +715,7 @@ async function showSynthResult(panel, blob, duration) {
     output.classList.remove('hidden');
     await panelState.player.loadFromBlob(blob);
     if (panelState.waveform && panelState.player.buffer) panelState.waveform.setAudioBuffer(panelState.player.buffer);
+    revealOutput(panel, panelState);
 
     const dur = panelState.player.getDuration();
     document.getElementById(`${panel}-duration`).textContent = `${Utils.formatTime(dur)} · ${duration.toFixed(1)}s`;
@@ -718,6 +807,7 @@ async function streamSynthesis(panel, params) {
                 const output = document.getElementById(`${panel}-output`);
                 output.classList.remove('hidden');
                 if (panelState.waveform && panelState.player.buffer) panelState.waveform.setAudioBuffer(panelState.player.buffer);
+                revealOutput(panel, panelState);
                 const dur = panelState.player.getDuration();
                 document.getElementById(`${panel}-duration`).textContent = `${Utils.formatTime(dur)} · ${elapsed.toFixed(1)}s`;
                 document.getElementById(`${panel}-total-time`).textContent = Utils.formatTime(dur);
@@ -895,9 +985,11 @@ async function playHistoryItem(id, records) {
     const blob = Utils.base64ToBlob(rec.audioBase64);
     const panel = rec.model;
     const panelState = State[panel];
+    switchTab(panel); // 历史在所有 tab 下可见，先切到对应面板再揭晓
     await panelState.player.loadFromBlob(blob);
     if (panelState.waveform && panelState.player.buffer) panelState.waveform.setAudioBuffer(panelState.player.buffer);
     document.getElementById(`${panel}-output`).classList.remove('hidden');
+    revealOutput(panel, panelState);
     const dur = panelState.player.getDuration();
     document.getElementById(`${panel}-duration`).textContent = Utils.formatTime(dur);
     document.getElementById(`${panel}-total-time`).textContent = Utils.formatTime(dur);
@@ -966,6 +1058,8 @@ async function playVoicePreview(voiceId, previewUrl) {
 
 function updatePreviewBtnState(voiceId, playing) {
     const btn = document.querySelector(`.voice-preview-btn[data-voice="${voiceId}"]`);
+    const card = document.querySelector(`.voice-card[data-voice-id="${voiceId}"]`);
+    if (card) card.classList.toggle('previewing', playing);
     if (btn) {
         btn.classList.toggle('playing', playing);
         btn.innerHTML = playing

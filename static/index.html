@@ -284,11 +284,17 @@
                         </div>
 
                         <div class="action-row">
-                            <label class="mx-switch">
-                                <input type="checkbox" id="preset-stream-toggle">
-                                <div class="mx-switch-track"><div class="mx-switch-thumb"></div></div>
-                                <span class="mx-switch-label">流式输出</span>
-                            </label>
+                            <div class="action-meta">
+                                <button type="button" id="preset-context-chip" class="ctx-chip" title="点按回到音色与风格设置">
+                                    <svg class="ctx-chip-icon" viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><rect x="4" y="9" width="3" height="6" rx="1"/><rect x="10.5" y="5" width="3" height="14" rx="1"/><rect x="17" y="8" width="3" height="8" rx="1"/></svg>
+                                    <span class="ctx-chip-text">默认音色</span>
+                                </button>
+                                <label class="mx-switch">
+                                    <input type="checkbox" id="preset-stream-toggle">
+                                    <div class="mx-switch-track"><div class="mx-switch-thumb"></div></div>
+                                    <span class="mx-switch-label">流式输出</span>
+                                </label>
+                            </div>
                             <button id="preset-synthesize-btn" class="mx-btn mx-btn-primary mx-btn-lg" data-ripple>
                                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                                 <span class="btn-text">开始合成</span>
@@ -388,11 +394,17 @@
                 <div class="mx-card" style="margin-bottom:12px">
                     <div class="mx-card-body">
                         <div class="action-row">
-                            <label class="mx-switch">
-                                <input type="checkbox" id="voicedesign-stream-toggle">
-                                <div class="mx-switch-track"><div class="mx-switch-thumb"></div></div>
-                                <span class="mx-switch-label">流式输出</span>
-                            </label>
+                            <div class="action-meta">
+                                <button type="button" id="voicedesign-context-chip" class="ctx-chip missing" title="点按回到音色描述">
+                                    <svg class="ctx-chip-icon" viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><rect x="4" y="9" width="3" height="6" rx="1"/><rect x="10.5" y="5" width="3" height="14" rx="1"/><rect x="17" y="8" width="3" height="8" rx="1"/></svg>
+                                    <span class="ctx-chip-text">未填写音色描述</span>
+                                </button>
+                                <label class="mx-switch">
+                                    <input type="checkbox" id="voicedesign-stream-toggle">
+                                    <div class="mx-switch-track"><div class="mx-switch-thumb"></div></div>
+                                    <span class="mx-switch-label">流式输出</span>
+                                </label>
+                            </div>
                             <button id="voicedesign-synthesize-btn" class="mx-btn mx-btn-primary mx-btn-lg" data-ripple>
                                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                                 <span class="btn-text">开始合成</span>
@@ -506,11 +518,17 @@
                 <div class="mx-card" style="margin-bottom:12px">
                     <div class="mx-card-body">
                         <div class="action-row">
-                            <label class="mx-switch">
-                                <input type="checkbox" id="voiceclone-stream-toggle">
-                                <div class="mx-switch-track"><div class="mx-switch-thumb"></div></div>
-                                <span class="mx-switch-label">流式输出</span>
-                            </label>
+                            <div class="action-meta">
+                                <button type="button" id="voiceclone-context-chip" class="ctx-chip missing" title="点按回到样本上传">
+                                    <svg class="ctx-chip-icon" viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><rect x="4" y="9" width="3" height="6" rx="1"/><rect x="10.5" y="5" width="3" height="14" rx="1"/><rect x="17" y="8" width="3" height="8" rx="1"/></svg>
+                                    <span class="ctx-chip-text">未上传样本</span>
+                                </button>
+                                <label class="mx-switch">
+                                    <input type="checkbox" id="voiceclone-stream-toggle">
+                                    <div class="mx-switch-track"><div class="mx-switch-thumb"></div></div>
+                                    <span class="mx-switch-label">流式输出</span>
+                                </label>
+                            </div>
                             <button id="voiceclone-synthesize-btn" class="mx-btn mx-btn-primary mx-btn-lg" data-ripple>
                                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                                 <span class="btn-text">开始合成</span>
