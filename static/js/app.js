@@ -125,6 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initHistoryPanel();
     initContextChips();
     initSynthDock();
+    initApiBadges();
     refreshHistoryUI();
     switchTab(State.currentTab); // 初始页头带上真实元信息（音色数等），并校准 Dock
 });
@@ -350,6 +351,20 @@ function focusContextTarget(panel) {
     target.classList.remove('card-flash');
     void target.offsetWidth; // 重新触发动画
     target.classList.add('card-flash');
+}
+
+/* ==================== API 状态徽章 ==================== */
+
+/** 顶栏 API 徽章：点按直达设置页 */
+function initApiBadges() {
+    ['sidebar-api-status', 'mobile-api-badge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('click', () => switchTab('settings'));
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchTab('settings'); }
+        });
+    });
 }
 
 /* ==================== 预置音色面板 ==================== */

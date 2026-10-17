@@ -15,6 +15,9 @@
     /* .mx-bottom-nav 为内容自适应高度（图标 24 + 标签 + 上下 padding ≈ 81px，
        不含 safe-area），所有为底栏预留的空间统一引用此变量 */
     --tts-nav-h: 81px;
+    /* 框架 badge.css / 本文件历史代码误用了 --mx-red（令牌表中不存在），
+       统一别名到 --mx-error，修复错误状态色失效 */
+    --mx-red: var(--mx-error);
 }
 
 /* ====== 隐藏类 ====== */
@@ -46,7 +49,7 @@
     .mx-desktop-topbar{ display:none; }
     /* 底部导航为 fixed 定位，补回被遮挡的内容区；
        框架原有规则用的直传子选择器(.mx-app > .mx-body)已不再命中 */
-    .mx-desktop-main.mx-body{ padding-bottom:calc(72px + var(--mx-safe-b)); }
+    .mx-desktop-main.mx-body{ padding-bottom:calc(var(--tts-nav-h) + var(--mx-safe-b)); }
 }
 
 /* ====== 子面板 ====== */
@@ -150,7 +153,7 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: 12px;
     color: var(--mx-t3);
 }
 
@@ -195,7 +198,7 @@
 .tags-section { margin-bottom: 12px; }
 
 .tags-label {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--mx-t3);
     margin-bottom: 8px;
@@ -416,6 +419,10 @@
     }
 }
 
+/* ====== 可点徽章 ====== */
+.api-badge { cursor: pointer; }
+.api-badge:focus-visible { outline: 2px solid var(--mx-primary); outline-offset: 2px; }
+
 /* ====== 输出区 ====== */
 .output-card {
     animation: mx-card-in var(--mx-d3) var(--mx-ease);
@@ -472,7 +479,7 @@
 }
 
 .time-label {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--mx-t3);
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
@@ -508,7 +515,7 @@
 
 .file-meta {
     display: block;
-    font-size: 11px;
+    font-size: 12px;
     color: var(--mx-t3);
 }
 
@@ -551,7 +558,7 @@
 }
 
 .param-summary-title {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--mx-t3);
     text-transform: uppercase;
@@ -653,7 +660,7 @@
 }
 
 .history-item-meta {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--mx-t3);
     margin-top: 2px;
 }

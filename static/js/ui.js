@@ -204,21 +204,21 @@ const UI = {
         textarea.dispatchEvent(new Event('input'));
     },
 
-    /** 更新侧边栏 API 状态 */
+    /** 更新侧边栏 API 状态（待配置用琥珀色提示，不当作错误） */
     updateApiStatus(hasKey) {
         const badge = document.getElementById('sidebar-api-status');
         const settingsBadge = document.getElementById('settings-api-status');
         const mobileBadge = document.getElementById('mobile-api-badge');
         if (badge) {
-            badge.className = `mx-badge ${hasKey ? 'mx-badge-success' : 'mx-badge-error'}`;
+            badge.className = `mx-badge api-badge ${hasKey ? 'mx-badge-success' : 'mx-badge-warning'}`;
             badge.querySelector('span').textContent = hasKey ? 'API 已连接' : 'API 未配置';
         }
         if (settingsBadge) {
-            settingsBadge.className = `mx-badge ${hasKey ? 'mx-badge-success' : 'mx-badge-error'}`;
+            settingsBadge.className = `mx-badge ${hasKey ? 'mx-badge-success' : 'mx-badge-warning'}`;
             settingsBadge.textContent = hasKey ? '已配置' : '未配置';
         }
         if (mobileBadge) {
-            mobileBadge.className = `mx-badge ${hasKey ? 'mx-badge-success' : 'mx-badge-error'}`;
+            mobileBadge.className = `mx-badge api-badge ${hasKey ? 'mx-badge-success' : 'mx-badge-warning'}`;
             mobileBadge.textContent = hasKey ? 'API 已连接' : 'API 未配置';
         }
     },
