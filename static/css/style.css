@@ -12,10 +12,21 @@
 /* ====== TTS 扩展变量 ====== */
 :root {
     --tts-sidebar-width: 240px;
+    /* .mx-bottom-nav 为内容自适应高度（图标 24 + 标签 + 上下 padding ≈ 81px，
+       不含 safe-area），所有为底栏预留的空间统一引用此变量 */
+    --tts-nav-h: 81px;
 }
 
 /* ====== 隐藏类 ====== */
 .hidden { display: none !important; }
+
+/* ====== 页头 ====== */
+/* 标题实色呈现 — 覆盖框架 layout.css 的渐变剪裁文字（框架文件随上游同步，不直接改） */
+.mx-page-title {
+    background: none;
+    -webkit-text-fill-color: var(--mx-text);
+    color: var(--mx-text);
+}
 
 /* ====== 面板切换 ====== */
 .panel { display: none; }
@@ -341,6 +352,69 @@
 }
 
 .card-flash { animation: card-flash 1s var(--mx-ease) 1; }
+
+/* ====== 移动端合成 Dock ====== */
+.synth-dock {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--tts-nav-h) + var(--mx-safe-b) + 10px);
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 8px 8px 14px;
+    border: 1px solid var(--mx-border);
+    border-radius: var(--mx-r);
+    backdrop-filter: blur(24px) saturate(1.6);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    box-shadow: var(--mx-sh3);
+    animation: dock-in var(--mx-d3) var(--mx-spring);
+}
+
+.synth-dock[hidden] { display: none; }
+
+[data-theme="dark"] .synth-dock { background: rgba(28,28,28,0.85); }
+[data-theme="light"] .synth-dock { background: rgba(255,255,255,0.85); }
+
+/* 仅手机/平板显示；桌面端 CTA 常驻可见 */
+@media(min-width:1024px) { .synth-dock { display: none !important; } }
+
+@keyframes dock-in {
+    from { transform: translateY(16px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.dock-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+    padding: 4px 0;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--mx-t2);
+    text-align: left;
+    cursor: pointer;
+}
+
+.dock-info:focus-visible { outline: 2px solid var(--mx-primary); outline-offset: 2px; border-radius: var(--mx-r-xs); }
+.dock-info-icon { color: var(--mx-primary); flex-shrink: 0; }
+.dock-info span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dock-info.missing { color: var(--mx-t3); }
+.dock-info.missing .dock-info-icon { color: var(--mx-amber); }
+
+/* Dock 出现时为主内容补留白，避免遮挡末尾内容 */
+@media(max-width:1023px) {
+    body.dock-visible .mx-desktop-main.mx-body {
+        padding-bottom: calc(var(--tts-nav-h) + var(--mx-safe-b) + 64px);
+        transition: padding-bottom var(--mx-d2) var(--mx-ease);
+    }
+}
 
 /* ====== 输出区 ====== */
 .output-card {
@@ -674,7 +748,8 @@
     .param-summary,
     .voice-card.selected::after,
     .voice-card.previewing .voice-fp span,
-    .card-flash {
+    .card-flash,
+    .synth-dock {
         animation: none !important;
     }
 

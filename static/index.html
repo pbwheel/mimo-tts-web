@@ -87,6 +87,18 @@
     </ul>
 </nav>
 
+<!-- 移动端合成 Dock — 文本就绪时浮于底部导航上方，免滚动直达合成 -->
+<div id="synth-dock" class="synth-dock" hidden>
+    <button type="button" id="dock-info" class="dock-info" title="回到文本编辑">
+        <svg class="dock-info-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><rect x="4" y="9" width="3" height="6" rx="1"/><rect x="10.5" y="5" width="3" height="14" rx="1"/><rect x="17" y="8" width="3" height="8" rx="1"/></svg>
+        <span id="dock-info-text">—</span>
+    </button>
+    <button type="button" id="dock-synth-btn" class="mx-btn mx-btn-primary mx-btn-sm" data-ripple>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span class="btn-text">开始合成</span>
+    </button>
+</div>
+
 <!-- 主布局 -->
 <div class="mx-app">
 

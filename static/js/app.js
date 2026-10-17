@@ -124,7 +124,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSettingsPanel();
     initHistoryPanel();
     initContextChips();
+    initSynthDock();
     refreshHistoryUI();
+    switchTab(State.currentTab); // 初始页头带上真实元信息（音色数等），并校准 Dock
 });
 
 /* ==================== 加载配置 ==================== */
@@ -201,8 +203,20 @@ function switchTab(tab) {
     document.querySelectorAll('.mx-nav-item[data-tab]').forEach(n => n.classList.toggle('active', n.dataset.tab === tab));
     document.querySelectorAll('.mx-btm-item[data-tab]').forEach(n => n.classList.toggle('active', n.dataset.tab === tab));
 
-    // 更新页面标题
-    UI.updatePageTitle(tab);
+    // 更新页面标题（副标题为该 tab 的真实元信息）
+    UI.updatePageTitle(tab, pageMeta(tab));
+    updateDock();
+}
+
+/** 页头副标题 — 报告真实状态，不写营销文案 */
+function pageMeta(tab) {
+    const tagCount = Object.values(State.styleTags).reduce((n, arr) => n + arr.length, 0);
+    return {
+        preset: `MiMo-V2.5-TTS · ${State.voices.length} 个预置音色`,
+        voicedesign: `MiMo-V2.5-TTS · ${tagCount} 个风格标签`,
+        voiceclone: 'MiMo-V2.5-TTS · 样本 Base64 后 ≤ 10MB',
+        settings: 'API Key 仅存储在浏览器本地',
+    }[tab] || '';
 }
 
 /* ==================== 合成上下文胶囊 ==================== */
@@ -216,7 +230,7 @@ function initContextChips() {
         const section = document.getElementById(`panel-${panel}`);
         const chip = document.getElementById(`${panel}-context-chip`);
         if (!section || !chip) return;
-        const refresh = () => updateContextChip(panel);
+        const refresh = () => { updateContextChip(panel); updateDock(); };
         // 面板内任何输入/切换/点选都可能改变合成上下文，重算代价极低
         section.addEventListener('input', refresh);
         section.addEventListener('change', refresh);
@@ -226,12 +240,70 @@ function initContextChips() {
     });
 }
 
+/* ==================== 移动端合成 Dock ==================== */
+
+/**
+ * 底部导航上方的浮动操作条：文本就绪时出现，
+ * 显示合成上下文 + 直达合成按钮，免去长页面滚动。
+ */
+function initSynthDock() {
+    document.getElementById('dock-synth-btn').addEventListener('click', () => {
+        const btn = document.getElementById(`${State.currentTab}-synthesize-btn`);
+        if (btn) btn.click();
+    });
+    document.getElementById('dock-info').addEventListener('click', () => {
+        const panel = State.currentTab;
+        const ta = panel === 'preset'
+            ? (document.getElementById('preset-audio-tags').classList.contains('active')
+                ? document.getElementById('preset-tagged-text')
+                : document.getElementById('preset-text'))
+            : document.getElementById(`${panel}-tagged-text`);
+        const card = ta && ta.closest('.mx-card');
+        if (!card) return;
+        const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        card.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+        card.classList.remove('card-flash');
+        void card.offsetWidth;
+        card.classList.add('card-flash');
+    });
+    updateDock();
+}
+
+/** 当前面板的有效合成文本（与 collect*Params 取文本逻辑一致） */
+function effectiveSynthText(panel) {
+    if (panel === 'preset') {
+        const tagged = document.getElementById('preset-tagged-text').value.trim();
+        if (document.getElementById('preset-audio-tags').classList.contains('active') && tagged) return tagged;
+        return document.getElementById('preset-text').value.trim();
+    }
+    if (panel === 'voicedesign') return document.getElementById('voicedesign-tagged-text').value.trim();
+    if (panel === 'voiceclone') return document.getElementById('voiceclone-tagged-text').value.trim();
+    return '';
+}
+
+function updateDock() {
+    const dock = document.getElementById('synth-dock');
+    if (!dock) return;
+    const meta = contextLabel(State.currentTab);
+    const ready = !!meta && !!effectiveSynthText(State.currentTab);
+    dock.hidden = !ready;
+    document.body.classList.toggle('dock-visible', ready);
+    if (!ready) return;
+    document.getElementById('dock-info-text').textContent = meta.label;
+    document.getElementById('dock-info').classList.toggle('missing', meta.missing);
+}
+
 function updateContextChip(panel) {
     const chip = document.getElementById(`${panel}-context-chip`);
     if (!chip) return;
-    const textEl = chip.querySelector('.ctx-chip-text');
-    let label = '', missing = false;
+    const meta = contextLabel(panel);
+    if (!meta) return;
+    chip.querySelector('.ctx-chip-text').textContent = meta.label;
+    chip.classList.toggle('missing', meta.missing);
+}
 
+/** 面板的合成上下文摘要（胶囊与移动端 Dock 共用） */
+function contextLabel(panel) {
     if (panel === 'preset') {
         const v = State.voices.find(x => x.id === State.selectedVoice);
         const parts = [v ? `${v.name} · ${v.language}` : State.selectedVoice];
@@ -247,19 +319,18 @@ function updateContextChip(panel) {
         }
         if (document.getElementById('preset-singing-toggle').checked) style = style ? `${style} · 唱歌` : '唱歌';
         if (style) parts.push(style);
-        label = parts.join(' · ');
-    } else if (panel === 'voicedesign') {
-        const desc = document.getElementById('voicedesign-description').value.trim();
-        missing = !desc;
-        label = desc ? Utils.truncate(desc, 16) : '未填写音色描述';
-    } else if (panel === 'voiceclone') {
-        missing = !State.voiceclone.audioBase64;
-        const name = document.getElementById('voiceclone-file-name').textContent;
-        label = missing ? '未上传样本' : Utils.truncate(name, 20);
+        return { label: parts.join(' · '), missing: false };
     }
-
-    textEl.textContent = label;
-    chip.classList.toggle('missing', missing);
+    if (panel === 'voicedesign') {
+        const desc = document.getElementById('voicedesign-description').value.trim();
+        return { label: desc ? Utils.truncate(desc, 16) : '未填写音色描述', missing: !desc };
+    }
+    if (panel === 'voiceclone') {
+        const missing = !State.voiceclone.audioBase64;
+        const name = document.getElementById('voiceclone-file-name').textContent;
+        return { label: missing ? '未上传样本' : Utils.truncate(name, 20), missing };
+    }
+    return null;
 }
 
 /** 点击胶囊 → 滚回对应设置卡片并高亮一下 */

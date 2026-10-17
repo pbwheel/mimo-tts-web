@@ -17,34 +17,47 @@ const UI = {
         }
     },
 
-    /** 设置按钮 loading 状态（含真实耗时计时） */
+    /** 设置按钮 loading 状态（含真实耗时计时；合成按钮同步移动端 Dock） */
     setBtnLoading(btn, loading) {
+        const dockBtn = btn.id && btn.id.endsWith('-synthesize-btn')
+            ? document.getElementById('dock-synth-btn') : null;
+        const setVisual = (target, isLoading) => {
+            target.disabled = isLoading;
+            target.classList.toggle('loading', isLoading);
+            const svg = target.querySelector('svg');
+            if (svg) svg.style.display = isLoading ? 'none' : '';
+            const sp = target.querySelector('.spinner');
+            if (isLoading && !sp) {
+                const s = document.createElement('span');
+                s.className = 'spinner';
+                target.appendChild(s);
+            } else if (!isLoading && sp) sp.remove();
+        };
         if (loading) {
-            btn.disabled = true;
-            btn.classList.add('loading');
             const txt = btn.querySelector('.btn-text');
             if (txt) txt.dataset.origText = txt.textContent;
-            const svg = btn.querySelector('svg');
-            if (svg) svg.style.display = 'none';
-            const spinner = document.createElement('span');
-            spinner.className = 'spinner';
-            btn.appendChild(spinner);
+            setVisual(btn, true);
+            if (dockBtn) setVisual(dockBtn, true);
+            const dtxt = dockBtn ? dockBtn.querySelector('.btn-text') : null;
             const t0 = performance.now();
             if (txt) txt.textContent = '合成中 0.0s';
+            if (dtxt) dtxt.textContent = '合成中 0.0s';
             btn._loadingTimer = setInterval(() => {
                 if (!btn.isConnected) { clearInterval(btn._loadingTimer); return; }
-                if (txt) txt.textContent = `合成中 ${((performance.now() - t0) / 1000).toFixed(1)}s`;
+                const label = `合成中 ${((performance.now() - t0) / 1000).toFixed(1)}s`;
+                if (txt) txt.textContent = label;
+                if (dtxt) dtxt.textContent = label;
             }, 100);
         } else {
             clearInterval(btn._loadingTimer);
-            btn.disabled = false;
-            btn.classList.remove('loading');
-            const spinner = btn.querySelector('.spinner');
-            if (spinner) spinner.remove();
-            const svg = btn.querySelector('svg');
-            if (svg) svg.style.display = '';
+            setVisual(btn, false);
+            if (dockBtn) setVisual(dockBtn, false);
             const txt = btn.querySelector('.btn-text');
             if (txt) txt.textContent = txt.dataset.origText || '开始合成';
+            if (dockBtn) {
+                const dtxt = dockBtn.querySelector('.btn-text');
+                if (dtxt) dtxt.textContent = '开始合成';
+            }
         }
     },
 
@@ -210,17 +223,17 @@ const UI = {
         }
     },
 
-    /** 更新页面标题 */
-    updatePageTitle(tab) {
+    /** 更新页面标题（sub 为该 tab 的真实元信息，由调用方计算） */
+    updatePageTitle(tab, sub) {
         const titles = {
-            preset: ['预置音色合成', '选择音色、控制风格，一句话生成自然语音'],
-            voicedesign: ['音色设计', '用文字描述你想要的音色，AI 即刻生成'],
-            voiceclone: ['音色复刻', '上传音频样本，精准复刻目标音色'],
-            settings: ['设置', '管理 API 连接、默认参数和应用信息'],
+            preset: '预置音色合成',
+            voicedesign: '音色设计',
+            voiceclone: '音色复刻',
+            settings: '设置',
         };
-        const [title, desc] = titles[tab] || ['', ''];
+        const title = titles[tab] || '';
         document.getElementById('page-title').textContent = title;
-        document.getElementById('page-desc').textContent = desc;
+        document.getElementById('page-desc').textContent = sub || '';
         document.getElementById('breadcrumb-current').textContent = title;
     },
 };
