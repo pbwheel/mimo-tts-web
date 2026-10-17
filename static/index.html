@@ -150,7 +150,11 @@
         </div>
     </aside>
 
-    <!-- 桌面端顶栏 -->
+    <!-- 桌面端外壳：顶栏 + 工作区。
+         main 必须在 mx-desktop-shell 内部 —— 桌面端 .mx-app 是 flex 行布局，
+         shell(width:100%) 会占满侧边栏以外的全部宽度，main 若是 .mx-app 的
+         直接子元素会被挤压为 0 宽度导致内容不可见。手机端的显示问题在
+         style.css 中通过保留 shell、仅隐藏顶栏解决。 -->
     <div class="mx-desktop-shell">
         <header class="mx-desktop-topbar">
             <div class="mx-breadcrumb">
@@ -164,10 +168,9 @@
                 </div>
             </div>
         </header>
-    </div>
 
-    <!-- 工作区 — 必须是 .mx-app 的直接子元素 -->
-    <main class="mx-desktop-main mx-body">
+        <!-- 工作区 -->
+        <main class="mx-desktop-main mx-body">
             <div class="mx-page-head">
                 <h1 class="mx-page-title" id="page-title">预置音色合成</h1>
                 <p class="mx-page-sub" id="page-desc">选择音色、控制风格，一句话生成自然语音</p>
@@ -624,6 +627,7 @@
                 </div>
             </div>
     </main>
+    </div>
 </div>
 
 <!-- Miuix Console JS 工具 -->

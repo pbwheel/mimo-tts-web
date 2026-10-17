@@ -21,6 +21,23 @@
 .panel { display: none; }
 .panel.active { display: block; animation: mx-slide-up var(--mx-d3) var(--mx-ease) }
 
+/* ====== 布局结构修正 ======
+   框架 layout.css 在 <1024px 时将整个 .mx-desktop-shell 设为 display:none，
+   而 main 位于 shell 内部，会被连带隐藏（手机端内容消失的根源）。
+   改为：手机端保留 shell 作为布局容器，只隐藏桌面顶栏。 */
+@media(max-width:1023px){
+    .mx-app > .mx-desktop-shell{
+        display:flex;
+        flex-direction:column;
+        flex:1;
+        min-height:0; /* 允许 main 在 shell 内正常滚动 */
+    }
+    .mx-desktop-topbar{ display:none; }
+    /* 底部导航为 fixed 定位，补回被遮挡的内容区；
+       框架原有规则用的直传子选择器(.mx-app > .mx-body)已不再命中 */
+    .mx-desktop-main.mx-body{ padding-bottom:calc(72px + var(--mx-safe-b)); }
+}
+
 /* ====== 子面板 ====== */
 .sub-panel { display: none; }
 .sub-panel.active { display: block; animation: mx-fade-item var(--mx-d2) var(--mx-ease) }
