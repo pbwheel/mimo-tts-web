@@ -43,7 +43,7 @@
 - **批量合成**：多行文本逐段合成，进度追踪，打包下载
 - **合成历史**：IndexedDB 存储最近 50 条记录，支持回放、下载、复用参数
 - **参数摘要**：每次合成后显示完整参数（模型、音色、标签、字数、耗时），一键复制 JSON / 重新合成
-- **音色试听**：每个音色卡片有 ▶ 按钮，无需消耗 API 额度即可试听
+- **音色试听**：每个音色卡片有 ▶ 按钮，无需消耗 API 额度即可试听（音频取自[官方 Demo](https://mimo.xiaomi.com/mimo-v2-5-tts)，可用 `scripts/fetch_previews.sh` 重新下载；`mimo_default` 无官方样例，为本地生成）
 - **流式输出**：WebSocket 实时推送 PCM 数据，边收边播
 - **波形可视化**：Web Audio API + Canvas 波形绘制，播放进度高亮
 - **暗色主题**：深色系设计，连贯动画，响应式适配桌面 / 平板 / 手机
@@ -63,6 +63,8 @@ mimo-tts-web/
 ├── Dockerfile                       # Docker 镜像定义
 ├── docker-compose.yml               # Docker Compose 配置
 ├── .github/workflows/docker.yml     # CI/CD 流水线
+├── scripts/
+│   └── fetch_previews.sh            # 从官网重新下载音色试听音频
 ├── routers/
 │   ├── health.py                    # 健康检查、连接测试
 │   └── synthesize.py                # 合成路由（单条 + 批量 + WebSocket）
