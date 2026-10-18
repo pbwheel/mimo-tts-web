@@ -15,7 +15,7 @@ from fastapi.responses import Response
 from config import MODELS, MAX_AUDIO_BASE64_SIZE
 from schemas import (
     PresetRequest, VoiceDesignRequest, VoiceCloneRequest,
-    DirectorConfig,
+    DirectorConfig, ChatMessage,
     BatchPresetRequest, BatchVoiceDesignRequest, BatchVoiceCloneRequest,
     BatchResultItem, BatchResponse,
 )
@@ -33,9 +33,13 @@ def _build_preset_messages(req: PresetRequest) -> list[dict]:
     """
     构造预置音色合成的 messages
 
+    - 代码模式：req.messages 非空时原样透传，不做任何拼接
     - user 消息：自然语言风格控制 / 导演模式
     - assistant 消息：音频标签前缀 + 合成文本
     """
+    if req.messages:
+        return [m.model_dump() for m in req.messages]
+
     messages = []
 
     # user 消息（可选）：自然语言风格控制
@@ -373,6 +377,7 @@ async def ws_synthesize(websocket: WebSocket):
         "audio_tags": "...",
         "director": {...},        // preset 专用
         "singing": false,         // preset 专用
+        "messages": [...],        // preset 专用（代码模式，提供时优先生效）
         "voice_description": "...", // voicedesign 专用
         "audio_base64": "...",    // voiceclone 专用
         "mime_type": "...",       // voiceclone 专用
@@ -407,14 +412,16 @@ async def ws_synthesize(websocket: WebSocket):
             audio_tags = config.get("audio_tags")
             director = config.get("director")
             singing = config.get("singing", False)
+            custom_messages = config.get("messages")
 
             req = PresetRequest(
                 voice=voice,
-                text=text,
+                text=text or None,
                 style_prompt=style_prompt,
                 audio_tags=audio_tags,
                 director=DirectorConfig(**director) if director else None,
                 singing=singing,
+                messages=[ChatMessage(**m) for m in custom_messages] if custom_messages else None,
             )
             messages = _build_preset_messages(req)
             audio_config = {"format": "pcm16", "voice": voice}

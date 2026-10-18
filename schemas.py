@@ -2,8 +2,8 @@
 MiMo-V2.5-TTS Web UI — Pydantic 请求/响应模型
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, model_validator
+from typing import Literal, Optional
 
 
 class DirectorConfig(BaseModel):
@@ -13,15 +13,31 @@ class DirectorConfig(BaseModel):
     direction: str = Field("", description="演绎指导")
 
 
+class ChatMessage(BaseModel):
+    """代码模式 — 单条消息（原样透传给 MiMo API）"""
+    role: Literal["user", "assistant", "system"] = Field(..., description="消息角色")
+    content: str = Field(..., min_length=1, description="消息内容")
+
+
 class PresetRequest(BaseModel):
     """预置音色合成请求"""
     voice: str = Field("mimo_default", description="音色 ID")
-    text: str = Field(..., min_length=1, description="合成文本")
+    text: Optional[str] = Field(None, min_length=1, description="合成文本（常规模式）")
+    messages: Optional[list[ChatMessage]] = Field(
+        None, min_length=1, description="自定义消息列表（代码模式，提供时优先生效）"
+    )
     style_prompt: Optional[str] = Field(None, description="自然语言风格控制")
     audio_tags: Optional[str] = Field(None, description="音频标签前缀")
     director: Optional[DirectorConfig] = Field(None, description="导演模式配置")
     singing: bool = Field(False, description="唱歌模式")
     stream: bool = Field(False, description="是否流式")
+
+    @model_validator(mode="after")
+    def _require_text_or_messages(self):
+        """常规模式用 text，代码模式用 messages，二者必居其一"""
+        if not self.messages and not self.text:
+            raise ValueError("text 与 messages 必须至少提供一项")
+        return self
 
 
 class VoiceDesignRequest(BaseModel):

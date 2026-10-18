@@ -293,6 +293,57 @@
 
 .director-fields.hidden { display: none; }
 
+/* ====== 代码模式 — USER / ASSISTANT 消息编辑 ====== */
+.code-mode-hint {
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--mx-t3);
+    background: var(--mx-s2);
+    border: 1px solid var(--mx-border);
+    border-radius: var(--mx-r-xs);
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+.code-mode-hint code {
+    font-family: var(--mx-mono);
+    font-size: 12px;
+    color: var(--mx-primary);
+    padding: 0 2px;
+}
+
+.code-msg-block { margin-bottom: 12px; }
+
+.code-msg-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.code-msg-role {
+    font-family: var(--mx-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: var(--mx-r-pill);
+    border: 1px solid var(--mx-border);
+}
+
+.code-msg-role.user {
+    color: var(--mx-t2);
+    background: var(--mx-s3);
+}
+
+.code-msg-role.assistant {
+    color: var(--mx-primary);
+    background: var(--mx-primary-glow);
+    border-color: var(--mx-primary);
+}
+
+.code-msg-caption { font-size: 12px; color: var(--mx-t3); }
+
 /* ====== 操作行 ====== */
 .action-row {
     display: flex;

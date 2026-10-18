@@ -255,9 +255,11 @@ function initSynthDock() {
     document.getElementById('dock-info').addEventListener('click', () => {
         const panel = State.currentTab;
         const ta = panel === 'preset'
-            ? (document.getElementById('preset-audio-tags').classList.contains('active')
-                ? document.getElementById('preset-tagged-text')
-                : document.getElementById('preset-text'))
+            ? (document.getElementById('preset-code-mode').classList.contains('active')
+                ? document.getElementById('preset-code-assistant')
+                : document.getElementById('preset-audio-tags').classList.contains('active')
+                    ? document.getElementById('preset-tagged-text')
+                    : document.getElementById('preset-text'))
             : document.getElementById(`${panel}-tagged-text`);
         const card = ta && ta.closest('.mx-card');
         if (!card) return;
@@ -273,6 +275,9 @@ function initSynthDock() {
 /** 当前面板的有效合成文本（与 collect*Params 取文本逻辑一致） */
 function effectiveSynthText(panel) {
     if (panel === 'preset') {
+        if (document.getElementById('preset-code-mode').classList.contains('active')) {
+            return document.getElementById('preset-code-assistant').value.trim();
+        }
         const tagged = document.getElementById('preset-tagged-text').value.trim();
         if (document.getElementById('preset-audio-tags').classList.contains('active') && tagged) return tagged;
         return document.getElementById('preset-text').value.trim();
@@ -308,9 +313,14 @@ function contextLabel(panel) {
     if (panel === 'preset') {
         const v = State.voices.find(x => x.id === State.selectedVoice);
         const parts = [v ? `${v.name} · ${v.language}` : State.selectedVoice];
+        const codeActive = document.getElementById('preset-code-mode').classList.contains('active');
         const audioTab = document.getElementById('preset-audio-tags').classList.contains('active');
         let style = '';
-        if (audioTab) {
+        if (codeActive) {
+            // 代码模式：USER 指令可留空，唱歌等开关不参与
+            const userMsg = document.getElementById('preset-code-user').value.trim();
+            style = userMsg ? `代码模式 · 指令 ${userMsg.length} 字` : '代码模式';
+        } else if (audioTab) {
             if (State.selectedStyleTags.size) style = `${State.selectedStyleTags.size} 个标签`;
         } else if (document.getElementById('preset-director-toggle').checked) {
             style = '导演模式';
@@ -318,7 +328,7 @@ function contextLabel(panel) {
             const sp = document.getElementById('preset-style-prompt').value.trim();
             if (sp) style = Utils.truncate(sp, 10);
         }
-        if (document.getElementById('preset-singing-toggle').checked) style = style ? `${style} · 唱歌` : '唱歌';
+        if (!codeActive && document.getElementById('preset-singing-toggle').checked) style = style ? `${style} · 唱歌` : '唱歌';
         if (style) parts.push(style);
         return { label: parts.join(' · '), missing: false };
     }
@@ -382,15 +392,13 @@ function initPresetPanel() {
 
     // 子 Tab（使用 mx-tabs）
     const subTabs = document.getElementById('preset-style-tabs');
-    if (subTabs) {
-        UI.initMxTabs(subTabs, (subtab) => {
-            document.getElementById('preset-natural-lang').classList.toggle('active', subtab === 'natural-lang');
-            document.getElementById('preset-audio-tags').classList.toggle('active', subtab === 'audio-tags');
-        });
-    }
+    if (subTabs) UI.initMxTabs(subTabs, applyPresetSubtab);
 
     UI.bindCharCount('preset-style-prompt', 'preset-style-count');
     UI.bindCharCount('preset-text', 'preset-text-count');
+    UI.bindCharCount('preset-code-user', 'preset-code-user-count');
+    UI.bindCharCount('preset-code-assistant', 'preset-code-assistant-count');
+    initCodeModeExamples();
 
     document.getElementById('preset-director-toggle').addEventListener('change', (e) => {
         document.getElementById('preset-director-fields').classList.toggle('hidden', !e.target.checked);
@@ -417,6 +425,66 @@ function renderPresetStyleTags() {
     });
 }
 
+/* ---------- 预置音色子 Tab ---------- */
+
+/**
+ * 子 Tab 切换：代码模式下由 ASSISTANT 编辑框整段取代常规文本区，
+ * 唱歌/批量等依赖"自动拼前缀 / 按行拆分"的控件一并让位。
+ */
+function applyPresetSubtab(subtab) {
+    document.getElementById('preset-natural-lang').classList.toggle('active', subtab === 'natural-lang');
+    document.getElementById('preset-audio-tags').classList.toggle('active', subtab === 'audio-tags');
+    document.getElementById('preset-code-mode').classList.toggle('active', subtab === 'code-mode');
+
+    const code = subtab === 'code-mode';
+    document.querySelectorAll('#panel-preset .preset-standard-only').forEach(el => el.classList.toggle('hidden', code));
+    if (code) {
+        // 批量按行拆分会破坏整段 ASSISTANT 文本，代码模式下退出批量
+        const batch = document.getElementById('preset-batch-toggle');
+        if (batch.checked) { batch.checked = false; batch.dispatchEvent(new Event('change')); }
+    }
+}
+
+/** 程序化激活子 Tab（复用历史 / 重新合成时使用） */
+function activatePresetSubtab(subtab) {
+    document.querySelectorAll('#preset-style-tabs .mx-tab').forEach(t => t.classList.toggle('active', t.dataset.subtab === subtab));
+    applyPresetSubtab(subtab);
+}
+
+/* ---------- 代码模式示例 ---------- */
+
+const CODE_MODE_EXAMPLES = [
+    {
+        label: '文学旁白（USER 指令 + 内联标签）',
+        user: '角色：一位四十岁左右的男性文学讲述者，声音低沉温润、略带磁性，像在向朋友回忆一段旅程，不用广播朗诵腔。\n场景：黄昏时分，他正描述记忆里一座南方小城。\n指导：\n1. 音色：中低音，自然胸腔共鸣，不刻意压低。\n2. 语速：中等偏慢，列举景物时保持连贯，不要每个名词都停顿。\n3. 开头平静从容；写灯火亮起时语气转柔、节奏放慢；结尾带一点怅然，尾音轻收。\n4. 避免舞台腔与夸张的抑扬顿挫，整体像一部文学纪录片的旁白。',
+        assistant: '(温柔 深沉 平静) 顺着江水往南走三天，你就会望见那座城：青瓦的屋顶沿山势铺开，石桥下泊着乌篷船，塔楼的铜铃在风里轻轻作响。\n\n旅人们熟悉这样的景致，在别的城市他们也见过。\n\n(深沉) 不过这座城真正的秘密，要等到黄昏才肯露面——\n\n(温柔 怅然) 那时街灯一盏一盏亮起来，渡口传来归人的招呼声，你会忽然羡慕起那些早早回家的人，觉得自己也曾这样幸福地生活过一个夜晚。',
+    },
+    {
+        label: '仅内联标签（无 USER 指令）',
+        user: '',
+        assistant: '(平静) 第一步，把水烧开。\n\n(轻快) 第二步，茶叶入杯，看它们在水里慢慢舒展。\n\n(温柔) 最后，趁热喝下去，今天就算没有白过。',
+    },
+];
+
+function initCodeModeExamples() {
+    const row = document.getElementById('preset-code-examples');
+    if (!row) return;
+    CODE_MODE_EXAMPLES.forEach(({ label, user, assistant }) => {
+        const chip = document.createElement('span');
+        chip.className = 'mx-tag mx-tag-clickable';
+        chip.textContent = label;
+        chip.addEventListener('click', () => {
+            const u = document.getElementById('preset-code-user');
+            const a = document.getElementById('preset-code-assistant');
+            u.value = user;
+            a.value = assistant;
+            u.dispatchEvent(new Event('input'));
+            a.dispatchEvent(new Event('input'));
+        });
+        row.appendChild(chip);
+    });
+}
+
 async function handlePresetSynthesis() {
     if (!API.getApiKey()) { UI.toast('请先输入 API Key', 'error'); document.getElementById('api-key-modal').classList.add('open'); return; }
 
@@ -427,7 +495,7 @@ async function handlePresetSynthesis() {
     if (isBatch) { await handleBatchSynthesis('preset'); return; }
 
     const params = collectPresetParams();
-    if (!params.text) { UI.toast('请输入合成文本', 'error'); return; }
+    if (!effectiveAssistantText(params)) { UI.toast('请输入合成文本', 'error'); return; }
 
     UI.setBtnLoading(btn, true);
     State.preset.lastParams = params;
@@ -449,7 +517,25 @@ async function handlePresetSynthesis() {
     }
 }
 
+/** 取参数中实际朗读的 assistant 文本（常规模式 text / 代码模式最后一条 assistant 消息） */
+function effectiveAssistantText(params) {
+    if (params.messages) {
+        const last = [...params.messages].reverse().find(m => m.role === 'assistant');
+        return last ? last.content.trim() : '';
+    }
+    return params.text || '';
+}
+
 function collectPresetParams() {
+    // 代码模式：USER / ASSISTANT 消息由用户整段自定义，原样发送，不做任何拼接
+    if (document.getElementById('preset-code-mode').classList.contains('active')) {
+        const messages = [];
+        const userMsg = document.getElementById('preset-code-user').value.trim();
+        if (userMsg) messages.push({ role: 'user', content: userMsg });
+        messages.push({ role: 'assistant', content: document.getElementById('preset-code-assistant').value.trim() });
+        return { voice: State.selectedVoice, messages };
+    }
+
     const text = document.getElementById('preset-text').value.trim();
     const stylePrompt = document.getElementById('preset-style-prompt').value.trim();
     const taggedText = document.getElementById('preset-tagged-text').value.trim();
@@ -822,16 +908,23 @@ function updateParamSummary(panel, duration) {
     rows.push({ label: '模型', value: modelMap[panel] });
     if (panel === 'preset') {
         rows.push({ label: '音色', value: params.voice || 'mimo_default' });
-        if (params.style_prompt) rows.push({ label: '风格', value: Utils.truncate(params.style_prompt, 30) });
-        if (params.director) rows.push({ label: '导演模式', value: '开启' });
-        if (params.singing) rows.push({ label: '唱歌', value: '开启' });
+        if (params.messages) {
+            rows.push({ label: '模式', value: `代码模式 · ${params.messages.length} 条消息` });
+            const user = params.messages.find(m => m.role === 'user');
+            if (user) rows.push({ label: 'USER 指令', value: Utils.truncate(user.content, 30) });
+        } else {
+            if (params.style_prompt) rows.push({ label: '风格', value: Utils.truncate(params.style_prompt, 30) });
+            if (params.director) rows.push({ label: '导演模式', value: '开启' });
+            if (params.singing) rows.push({ label: '唱歌', value: '开启' });
+        }
     } else if (panel === 'voicedesign') {
         rows.push({ label: '音色描述', value: Utils.truncate(params.voice_description, 30) });
     } else if (panel === 'voiceclone') {
         rows.push({ label: '样本格式', value: params.mime_type });
     }
     if (params.audio_tags) rows.push({ label: '标签', value: Utils.truncate(params.audio_tags, 40) });
-    rows.push({ label: '字数', value: params.text.length + ' 字' });
+    const assistantText = effectiveAssistantText(params);
+    if (assistantText) rows.push({ label: '字数', value: assistantText.length + ' 字' });
     rows.push({ label: '耗时', value: duration.toFixed(1) + 's' });
     UI.renderParamSummary(`${panel}-param-rows`, rows);
 }
@@ -849,7 +942,12 @@ function resynthesize(panel) {
     const params = State[panel].lastParams;
     if (!params) return;
     if (panel === 'preset') {
-        document.getElementById('preset-text').value = params.text || '';
+        if (params.messages) {
+            fillCodeModeFields(params.messages);
+        } else {
+            activatePresetSubtab('natural-lang');
+            document.getElementById('preset-text').value = params.text || '';
+        }
         if (params.voice) { State.selectedVoice = params.voice; UI.updateVoiceSelection(params.voice); }
         handlePresetSynthesis();
     } else if (panel === 'voicedesign') {
@@ -869,9 +967,15 @@ async function streamSynthesis(panel, params) {
     const wsConfig = { type: modelMap[panel] };
 
     if (panel === 'preset') {
-        wsConfig.voice = params.voice; wsConfig.text = params.text;
-        wsConfig.style_prompt = params.style_prompt; wsConfig.audio_tags = params.audio_tags;
-        wsConfig.director = params.director; wsConfig.singing = params.singing;
+        wsConfig.voice = params.voice;
+        if (params.messages) {
+            // 代码模式：messages 原样透传，服务端跳过风格/标签拼接
+            wsConfig.messages = params.messages;
+        } else {
+            wsConfig.text = params.text;
+            wsConfig.style_prompt = params.style_prompt; wsConfig.audio_tags = params.audio_tags;
+            wsConfig.director = params.director; wsConfig.singing = params.singing;
+        }
     } else if (panel === 'voicedesign') {
         wsConfig.voice_description = params.voice_description; wsConfig.text = params.text;
         wsConfig.audio_tags = params.audio_tags;
@@ -1014,7 +1118,7 @@ async function saveToHistory(panel, params, blob, duration) {
             await HistoryDB.add({
                 model: panel,
                 voice: params.voice || params.voice_description || '',
-                text: params.text || '',
+                text: params.text || effectiveAssistantText(params),
                 params: JSON.parse(JSON.stringify(params)),
                 duration, audioBase64,
             });
@@ -1090,12 +1194,29 @@ function downloadHistoryItem(id, records) {
     Utils.downloadBlob(Utils.base64ToBlob(rec.audioBase64), `tts_${rec.model}_${rec.id}.wav`);
 }
 
+/** 将 messages 列表回填到代码模式编辑框并切换到该子 Tab */
+function fillCodeModeFields(messages) {
+    activatePresetSubtab('code-mode');
+    const user = messages.find(m => m.role === 'user');
+    const assistant = [...messages].reverse().find(m => m.role === 'assistant');
+    const u = document.getElementById('preset-code-user');
+    const a = document.getElementById('preset-code-assistant');
+    u.value = user ? user.content : '';
+    a.value = assistant ? assistant.content : '';
+    u.dispatchEvent(new Event('input'));
+    a.dispatchEvent(new Event('input'));
+}
+
 function reuseHistoryItem(id, records) {
     const rec = records.find(r => r.id === id);
     if (!rec) return;
     switchTab(rec.model);
     if (rec.model === 'preset' && rec.params) {
-        document.getElementById('preset-text').value = rec.params.text || '';
+        if (rec.params.messages) {
+            fillCodeModeFields(rec.params.messages);
+        } else {
+            document.getElementById('preset-text').value = rec.params.text || '';
+        }
         if (rec.params.voice) { State.selectedVoice = rec.params.voice; UI.updateVoiceSelection(rec.params.voice); }
         if (rec.params.style_prompt) document.getElementById('preset-style-prompt').value = rec.params.style_prompt;
         if (rec.params.director) {

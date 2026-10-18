@@ -217,6 +217,7 @@
                         <div class="mx-tabs" id="preset-style-tabs">
                             <div class="mx-tab active" data-subtab="natural-lang">自然语言</div>
                             <div class="mx-tab" data-subtab="audio-tags">音频标签</div>
+                            <div class="mx-tab" data-subtab="code-mode">代码模式</div>
                         </div>
 
                         <!-- 自然语言 Tab -->
@@ -264,8 +265,35 @@
                             </div>
                         </div>
 
+                        <!-- 代码模式 Tab -->
+                        <div id="preset-code-mode" class="sub-panel" style="padding-top:12px">
+                            <div class="code-mode-hint">
+                                直接编辑发送给模型的完整消息：USER 为导演指令 / 风格描述（可留空），ASSISTANT 为合成文本（原样朗读，不做任何拼接）。可在 ASSISTANT 文本的段落转折处内联 <code>(温柔)</code> <code>[轻笑]</code> 等标签；唱歌请在文本开头自带 <code>(唱歌)</code>。
+                            </div>
+                            <div class="template-chips" style="margin-bottom:12px">
+                                <span class="template-chips-label">示例：</span>
+                                <div id="preset-code-examples" class="mx-tag-group"></div>
+                            </div>
+                            <div class="code-msg-block">
+                                <div class="code-msg-head">
+                                    <span class="code-msg-role user">USER</span>
+                                    <span class="code-msg-caption">导演指令 · 可选</span>
+                                </div>
+                                <textarea id="preset-code-user" class="mx-textarea" rows="5" placeholder="角色：……&#10;场景：……&#10;指导：……"></textarea>
+                                <div style="text-align:right;font-size:12px;color:var(--mx-t3);margin-top:4px"><span id="preset-code-user-count">0</span> 字</div>
+                            </div>
+                            <div class="code-msg-block">
+                                <div class="code-msg-head">
+                                    <span class="code-msg-role assistant">ASSISTANT</span>
+                                    <span class="code-msg-caption">合成文本 · 必填，原样发送</span>
+                                </div>
+                                <textarea id="preset-code-assistant" class="mx-textarea" rows="7" placeholder="(温柔 平静) 在这里输入要朗读的文本……&#10;&#10;(深沉) 在情绪转折处可以插入标签"></textarea>
+                                <div style="text-align:right;font-size:12px;color:var(--mx-t3);margin-top:4px"><span id="preset-code-assistant-count">0</span> 字</div>
+                            </div>
+                        </div>
+
                         <!-- 唱歌模式 -->
-                        <label class="mx-switch" style="margin-top:12px">
+                        <label class="mx-switch preset-standard-only" style="margin-top:12px">
                             <input type="checkbox" id="preset-singing-toggle">
                             <div class="mx-switch-track"><div class="mx-switch-thumb"></div></div>
                             <span class="mx-switch-label">唱歌模式</span>
@@ -279,18 +307,18 @@
                         <span class="mx-card-title">合成文本</span>
                     </div>
                     <div class="mx-card-body">
-                        <!-- 批量模式 -->
-                        <label class="mx-switch" style="margin-bottom:12px">
+                        <!-- 批量模式（代码模式下由 ASSISTANT 编辑框整段取代，隐藏） -->
+                        <label class="mx-switch preset-standard-only" style="margin-bottom:12px">
                             <input type="checkbox" id="preset-batch-toggle" class="batch-toggle" data-panel="preset">
                             <div class="mx-switch-track"><div class="mx-switch-thumb"></div></div>
                             <span class="mx-switch-label">批量模式</span>
                             </label>
 
-                        <textarea id="preset-text" class="mx-textarea" rows="5" placeholder="输入要合成的文本内容……"></textarea>
-                        <div style="text-align:right;font-size:12px;color:var(--mx-t3);margin-top:4px"><span id="preset-text-count">0</span> 字</div>
+                        <textarea id="preset-text" class="mx-textarea preset-standard-only" rows="5" placeholder="输入要合成的文本内容……"></textarea>
+                        <div class="preset-standard-only" style="text-align:right;font-size:12px;color:var(--mx-t3);margin-top:4px"><span id="preset-text-count">0</span> 字</div>
 
                         <!-- 批量进度 -->
-                        <div id="preset-batch-progress" class="batch-progress hidden">
+                        <div id="preset-batch-progress" class="batch-progress preset-standard-only hidden">
                             <div class="batch-info">
                                 <span id="preset-batch-count">共 0 段</span>
                                 <span id="preset-batch-status"></span>
