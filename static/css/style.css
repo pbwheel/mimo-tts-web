@@ -11,7 +11,6 @@
 
 /* ====== TTS 扩展变量 ====== */
 :root {
-    --tts-sidebar-width: 240px;
     /* .mx-bottom-nav 为内容自适应高度（图标 24 + 标签 + 上下 padding ≈ 81px，
        不含 safe-area），所有为底栏预留的空间统一引用此变量 */
     --tts-nav-h: 81px;
@@ -61,6 +60,18 @@
 /* 平板（768–1023）：水平边距与框架 .mx-pad 的平板档对齐 */
 @media (min-width:768px) and (max-width:1023px){
     .mx-desktop-main.mx-body{ padding-left:20px; padding-right:20px; }
+}
+
+/* 桌面端 shell 以"侧边栏以外的剩余空间"为基准，且允许收缩到内容以下。
+   框架给的是 width:100% + 默认 min-width:auto —— 先超占再靠收缩找补，
+   一旦出现不可收缩的 min-content（长 nowrap、宽表格、波形滚动模式）
+   就会撑破外壳产生横向溢出（曾导致 sidebar 被顶出屏幕）。 */
+@media(min-width:1024px){
+    .mx-app > .mx-desktop-shell{
+        flex: 1 1 0;
+        min-width: 0;
+        width: auto; /* 撤销框架 width:100% */
+    }
 }
 
 /* ====== 子面板 ====== */
