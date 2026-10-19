@@ -45,7 +45,7 @@
 - **参数摘要**：每次合成后显示完整参数（模型、音色、标签、字数、耗时），一键复制 JSON / 重新合成
 - **音色试听**：每个音色卡片有 ▶ 按钮，无需消耗 API 额度即可试听（音频取自[官方 Demo](https://mimo.xiaomi.com/mimo-v2-5-tts)，可用 `scripts/fetch_previews.sh` 重新下载；`mimo_default` 无官方样例，为本地生成）
 - **流式输出**：WebSocket 实时推送 PCM 数据，边收边播
-- **波形可视化**：Web Audio API + Canvas 波形绘制，播放进度高亮
+- **波形可视化**：[wavesurfer.js](https://wavesurfer.xyz) v8 波形，支持在波形上拖动/点击定位进度、hover 查看时间
 - **暗色主题**：深色系设计，连贯动画，响应式适配桌面 / 平板 / 手机
 - **设置页面**：独立的设置面板，管理 API Key、默认参数、连接测试
 - **API Key 安全**：仅存浏览器 localStorage，不经过服务端持久化
@@ -64,7 +64,8 @@ mimo-tts-web/
 ├── docker-compose.yml               # Docker Compose 配置
 ├── .github/workflows/docker.yml     # CI/CD 流水线
 ├── scripts/
-│   └── fetch_previews.sh            # 从官网重新下载音色试听音频
+│   ├── fetch_previews.sh            # 从官网重新下载音色试听音频
+│   └── fetch_vendor.sh              # 重新下载前端第三方依赖（wavesurfer.js，版本固定）
 ├── routers/
 │   ├── health.py                    # 健康检查、连接测试
 │   └── synthesize.py                # 合成路由（单条 + 批量 + WebSocket）
@@ -77,9 +78,10 @@ mimo-tts-web/
     └── js/
         ├── app.js                   # 主入口
         ├── api.js                   # API 封装
-        ├── audio.js                 # 音频播放器
+        ├── audio.js                 # 音频播放器 & 波形播放器
         ├── ui.js                    # UI 组件
-        └── utils.js                 # 工具函数
+        ├── utils.js                 # 工具函数
+        └── vendor/wavesurfer/       # wavesurfer.js v8（核心库须先于 hover 插件加载）
 ```
 
 ---
@@ -647,7 +649,7 @@ curl -X POST http://localhost:26645/api/synthesize/preset \
 | 层 | 技术 |
 |----|------|
 | 后端 | FastAPI + httpx + websockets + Pydantic |
-| 前端 | 原生 HTML/CSS/JS + Web Audio API |
+| 前端 | 原生 HTML/CSS/JS + Web Audio API + wavesurfer.js v8 |
 | 存储 | IndexedDB（合成历史） |
 | CI/CD | GitHub Actions → GHCR |
 | 部署 | Docker |

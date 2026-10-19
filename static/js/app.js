@@ -19,20 +19,18 @@ const State = {
     audioTags: [],
 
     preset: {
-        player: new AudioPlayer(),
-        waveform: null,
+        player: new WaveformPlayer(document.getElementById('preset-waveform')),
         lastBlob: null,
         lastParams: null,
     },
     voicedesign: {
-        player: new AudioPlayer(),
-        waveform: null,
+        player: new WaveformPlayer(document.getElementById('voicedesign-waveform')),
         lastBlob: null,
         lastParams: null,
     },
     voiceclone: {
-        player: new AudioPlayer(),
-        waveform: null,
+        player: new WaveformPlayer(document.getElementById('voiceclone-waveform')),
+        previewWave: new WaveformPlayer(document.getElementById('voiceclone-preview-waveform')),
         lastBlob: null,
         lastParams: null,
         audioBase64: null,
@@ -404,12 +402,10 @@ function initPresetPanel() {
         document.getElementById('preset-director-fields').classList.toggle('hidden', !e.target.checked);
     });
 
-    State.preset.waveform = new WaveformRenderer(document.getElementById('preset-waveform'));
     document.getElementById('preset-synthesize-btn').addEventListener('click', () => handlePresetSynthesis());
     initPlayerControls('preset', State.preset);
-    document.getElementById('preset-download-btn').addEventListener('click', () => {
-        if (State.preset.lastBlob) Utils.downloadBlob(State.preset.lastBlob, 'preset_audio.wav');
-    });
+    document.getElementById('preset-download-btn').addEventListener('click', () => downloadResultAudio('preset'));
+    document.getElementById('preset-download-audio').addEventListener('click', () => downloadResultAudio('preset'));
 
     initBatchMode('preset');
     document.getElementById('preset-copy-params').addEventListener('click', () => copyParams('preset'));
@@ -583,12 +579,10 @@ function initVoiceDesignPanel() {
     });
 
     UI.bindCharCount('voicedesign-tagged-text', 'voicedesign-text-count');
-    State.voicedesign.waveform = new WaveformRenderer(document.getElementById('voicedesign-waveform'));
     document.getElementById('voicedesign-synthesize-btn').addEventListener('click', () => handleVDSynthesis());
     initPlayerControls('voicedesign', State.voicedesign);
-    document.getElementById('voicedesign-download-btn').addEventListener('click', () => {
-        if (State.voicedesign.lastBlob) Utils.downloadBlob(State.voicedesign.lastBlob, 'voicedesign_audio.wav');
-    });
+    document.getElementById('voicedesign-download-btn').addEventListener('click', () => downloadResultAudio('voicedesign'));
+    document.getElementById('voicedesign-download-audio').addEventListener('click', () => downloadResultAudio('voicedesign'));
     initBatchMode('voicedesign');
     document.getElementById('voicedesign-copy-params').addEventListener('click', () => copyParams('voicedesign'));
     document.getElementById('voicedesign-resynthesize').addEventListener('click', () => resynthesize('voicedesign'));
@@ -650,6 +644,8 @@ function initVoiceClonePanel() {
     dropzone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => { if (fileInput.files.length) handleCloneFile(fileInput.files[0]); });
     document.getElementById('voiceclone-remove-btn').addEventListener('click', () => {
+        State.voiceclone.previewWave.stop();
+        State.voiceclone.previewWave.empty(); // 清空波形，重传时不残留上一份 peaks
         State.voiceclone.audioBase64 = null;
         State.voiceclone.mimeType = null;
         document.getElementById('voiceclone-file-info').classList.add('hidden');
@@ -662,13 +658,10 @@ function initVoiceClonePanel() {
         UI.insertAtCursor(document.getElementById('voiceclone-tagged-text'), `[${tag}]`);
     });
     UI.bindCharCount('voiceclone-tagged-text', 'voiceclone-text-count');
-    State.voiceclone.waveform = new WaveformRenderer(document.getElementById('voiceclone-waveform'));
-    State.voiceclone.previewWaveform = new WaveformRenderer(document.getElementById('voiceclone-preview-waveform'));
     document.getElementById('voiceclone-synthesize-btn').addEventListener('click', () => handleVCSynthesis());
     initPlayerControls('voiceclone', State.voiceclone);
-    document.getElementById('voiceclone-download-btn').addEventListener('click', () => {
-        if (State.voiceclone.lastBlob) Utils.downloadBlob(State.voiceclone.lastBlob, 'voiceclone_audio.wav');
-    });
+    document.getElementById('voiceclone-download-btn').addEventListener('click', () => downloadResultAudio('voiceclone'));
+    document.getElementById('voiceclone-download-audio').addEventListener('click', () => downloadResultAudio('voiceclone'));
     initBatchMode('voiceclone');
     document.getElementById('voiceclone-copy-params').addEventListener('click', () => copyParams('voiceclone'));
     document.getElementById('voiceclone-resynthesize').addEventListener('click', () => resynthesize('voiceclone'));
@@ -690,11 +683,8 @@ async function handleCloneFile(file) {
     document.getElementById('voiceclone-file-meta').textContent = `${Utils.formatSize(file.size)} · ${ext.toUpperCase()}`;
 
     try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const arrayBuf = await file.arrayBuffer();
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuf);
-        State.voiceclone.previewWaveform.setAudioBuffer(audioBuffer);
-        audioCtx.close();
+        // 小波形升级为可交互：wavesurfer 直接解码本地文件，可点播/拖动/hover
+        await State.voiceclone.previewWave.loadFromBlob(file);
     } catch {}
 }
 
@@ -830,7 +820,6 @@ function initSettingsPanel() {
 
 function initPlayerControls(panel, panelState) {
     const player = panelState.player;
-    const waveform = panelState.waveform;
 
     document.getElementById(`${panel}-play-btn`).addEventListener('click', () => {
         if (player.isPlaying) player.pause(); else player.play();
@@ -849,14 +838,17 @@ function initPlayerControls(panel, panelState) {
         if (fill) fill.style.width = (total > 0 ? (current / total * 100) : 0) + '%';
         if (curLabel) curLabel.textContent = Utils.formatTime(current);
         if (totLabel) totLabel.textContent = Utils.formatTime(total);
-        if (waveform) waveform.setProgress(total > 0 ? current / total : 0);
     };
 
     player.onEnded = () => {
         updatePlayBtn(panel, false);
         document.getElementById(`${panel}-progress-fill`).style.width = '0%';
-        if (waveform) waveform.setProgress(0);
+        document.getElementById(`${panel}-current-time`).textContent = '0:00';
     };
+
+    // 异步播放状态校正：播完、autoplay 被拒、拖动波形等路径下的按钮图标
+    player.onPlayState = (playing) => updatePlayBtn(panel, playing);
+    player.onError = (msg) => UI.toast('音频加载失败: ' + msg, 'error');
 }
 
 function updatePlayBtn(panel, isPlaying) {
@@ -877,7 +869,7 @@ function revealOutput(panel, panelState) {
     const output = document.getElementById(`${panel}-output`);
     const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (output) output.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' });
-    if (panelState.waveform) panelState.waveform.reveal();
+    if (panelState.player) panelState.player.reveal();
 }
 
 async function showSynthResult(panel, blob, duration) {
@@ -886,7 +878,6 @@ async function showSynthResult(panel, blob, duration) {
     const output = document.getElementById(`${panel}-output`);
     output.classList.remove('hidden');
     await panelState.player.loadFromBlob(blob);
-    if (panelState.waveform && panelState.player.buffer) panelState.waveform.setAudioBuffer(panelState.player.buffer);
     revealOutput(panel, panelState);
 
     const dur = panelState.player.getDuration();
@@ -896,6 +887,32 @@ async function showSynthResult(panel, blob, duration) {
     document.getElementById(`${panel}-progress-fill`).style.width = '0%';
     updatePlayBtn(panel, false);
     updateParamSummary(panel, duration);
+}
+
+/* ==================== 结果下载 ==================== */
+
+/**
+ * 生成下载文件名：mimo_<音色|design|clone>_YYYYMMDD-HHmmss.wav
+ */
+function buildAudioFilename(panel) {
+    const params = State[panel].lastParams || {};
+    let tag = panel;
+    if (panel === 'preset' && params.voice) tag = params.voice;
+    else if (panel === 'voicedesign') tag = 'design';
+    else if (panel === 'voiceclone') tag = 'clone';
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    return `mimo_${tag}_${stamp}.wav`;
+}
+
+/**
+ * 下载当前合成结果（播放条图标按钮与"下载音频"按钮共用）。
+ */
+function downloadResultAudio(panel) {
+    const blob = State[panel].lastBlob;
+    if (!blob) { UI.toast('暂无可下载的音频，请先合成', 'error'); return; }
+    Utils.downloadBlob(blob, buildAudioFilename(panel));
 }
 
 /* ==================== 参数摘要 ==================== */
@@ -992,11 +1009,10 @@ async function streamSynthesis(panel, params) {
             (arrayBuffer) => chunks.push(arrayBuffer),
             async (info) => {
                 const elapsed = (performance.now() - startTime) / 1000;
-                await panelState.player.loadFromPCMChunks(chunks);
-                const wavBlob = panelState.player.toWavBlob();
-                const output = document.getElementById(`${panel}-output`);
-                output.classList.remove('hidden');
-                if (panelState.waveform && panelState.player.buffer) panelState.waveform.setAudioBuffer(panelState.player.buffer);
+                // 先显示输出卡：波形惰性初始化需要容器有真实宽度
+                document.getElementById(`${panel}-output`).classList.remove('hidden');
+                const wavBlob = chunksToWavBlob(chunks);
+                await panelState.player.loadFromBlob(wavBlob);
                 revealOutput(panel, panelState);
                 const dur = panelState.player.getDuration();
                 document.getElementById(`${panel}-duration`).textContent = `${Utils.formatTime(dur)} · ${elapsed.toFixed(1)}s`;
@@ -1176,9 +1192,8 @@ async function playHistoryItem(id, records) {
     const panel = rec.model;
     const panelState = State[panel];
     switchTab(panel); // 历史在所有 tab 下可见，先切到对应面板再揭晓
-    await panelState.player.loadFromBlob(blob);
-    if (panelState.waveform && panelState.player.buffer) panelState.waveform.setAudioBuffer(panelState.player.buffer);
     document.getElementById(`${panel}-output`).classList.remove('hidden');
+    await panelState.player.loadFromBlob(blob);
     revealOutput(panel, panelState);
     const dur = panelState.player.getDuration();
     document.getElementById(`${panel}-duration`).textContent = Utils.formatTime(dur);

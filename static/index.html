@@ -358,7 +358,7 @@
                         <span id="preset-duration" class="mx-badge mx-badge-neutral"></span>
                     </div>
                     <div class="mx-card-body">
-                        <canvas id="preset-waveform" class="waveform-canvas"></canvas>
+                        <div id="preset-waveform" class="waveform-box"></div>
                         <div class="player-controls">
                             <button id="preset-play-btn" class="mx-btn-icon play-btn" data-ripple>
                                 <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -377,6 +377,7 @@
                             <div class="param-summary-title">参数摘要</div>
                             <div id="preset-param-rows" class="param-rows"></div>
                             <div class="param-actions">
+                                <button id="preset-download-audio" class="mx-btn mx-btn-primary mx-btn-sm" data-ripple>下载音频</button>
                                 <button id="preset-copy-params" class="mx-btn mx-btn-secondary mx-btn-sm" data-ripple>复制 JSON</button>
                                 <button id="preset-resynthesize" class="mx-btn mx-btn-secondary mx-btn-sm" data-ripple>重新合成</button>
                             </div>
@@ -467,7 +468,7 @@
                         <span id="voicedesign-duration" class="mx-badge mx-badge-neutral"></span>
                     </div>
                     <div class="mx-card-body">
-                        <canvas id="voicedesign-waveform" class="waveform-canvas"></canvas>
+                        <div id="voicedesign-waveform" class="waveform-box"></div>
                         <div class="player-controls">
                             <button id="voicedesign-play-btn" class="mx-btn-icon play-btn" data-ripple>
                                 <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -485,6 +486,7 @@
                             <div class="param-summary-title">参数摘要</div>
                             <div id="voicedesign-param-rows" class="param-rows"></div>
                             <div class="param-actions">
+                                <button id="voicedesign-download-audio" class="mx-btn mx-btn-primary mx-btn-sm" data-ripple>下载音频</button>
                                 <button id="voicedesign-copy-params" class="mx-btn mx-btn-secondary mx-btn-sm" data-ripple>复制 JSON</button>
                                 <button id="voicedesign-resynthesize" class="mx-btn mx-btn-secondary mx-btn-sm" data-ripple>重新合成</button>
                             </div>
@@ -519,7 +521,7 @@
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                 </button>
                             </div>
-                            <canvas id="voiceclone-preview-waveform" class="waveform-canvas waveform-sm"></canvas>
+                            <div id="voiceclone-preview-waveform" class="waveform-box waveform-sm"></div>
                         </div>
                     </div>
                 </div>
@@ -591,7 +593,7 @@
                         <span id="voiceclone-duration" class="mx-badge mx-badge-neutral"></span>
                     </div>
                     <div class="mx-card-body">
-                        <canvas id="voiceclone-waveform" class="waveform-canvas"></canvas>
+                        <div id="voiceclone-waveform" class="waveform-box"></div>
                         <div class="player-controls">
                             <button id="voiceclone-play-btn" class="mx-btn-icon play-btn" data-ripple>
                                 <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -609,6 +611,7 @@
                             <div class="param-summary-title">参数摘要</div>
                             <div id="voiceclone-param-rows" class="param-rows"></div>
                             <div class="param-actions">
+                                <button id="voiceclone-download-audio" class="mx-btn mx-btn-primary mx-btn-sm" data-ripple>下载音频</button>
                                 <button id="voiceclone-copy-params" class="mx-btn mx-btn-secondary mx-btn-sm" data-ripple>复制 JSON</button>
                                 <button id="voiceclone-resynthesize" class="mx-btn mx-btn-secondary mx-btn-sm" data-ripple>重新合成</button>
                             </div>
@@ -708,6 +711,9 @@
 <!-- TTS 应用 -->
 <script src="/js/utils.js"></script>
 <script src="/js/api.js"></script>
+<!-- 顺序不可换：核心 UMD 会整体覆盖 window.WaveSurfer，hover 插件须后加载 -->
+<script src="/vendor/wavesurfer/wavesurfer.min.js"></script>
+<script src="/vendor/wavesurfer/hover.min.js"></script>
 <script src="/js/audio.js"></script>
 <script src="/js/ui.js"></script>
 <script src="/js/app.js"></script>
